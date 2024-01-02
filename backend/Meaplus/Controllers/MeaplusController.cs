@@ -20,10 +20,13 @@ namespace Meaplus.Controllers
             
             var sefosParticipants = new List<SefosParticipant>();
             sefosParticipants.Add(new SefosParticipant { Email = "funktion2@fatg.se" });
+            var externalParticipants = new List<ExternalParticipant>();
+            externalParticipants.Add(new ExternalParticipant { Email = message.External_participants?.First().Email, Language = null, AuthenticationIdentifier = null, AuthenticationMethod = null, Configured = true });
 
             message.functionbox_uuid = "u95yt3zx933p:09pf5h9o";
             message.sefos_participants = sefosParticipants;
             message.settings = new Settings() { loa_level = 0, require_response = 0 };
+            message.External_participants = externalParticipants;
 
             var json = JsonConvert.SerializeObject(message);
             var data = new StringContent(json, Encoding.UTF8, "application/json");
