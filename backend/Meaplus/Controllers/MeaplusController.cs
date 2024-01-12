@@ -1,8 +1,8 @@
 ﻿using Meaplus.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
-using System;
 using Newtonsoft.Json;
+using Microsoft.AspNetCore.Http;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -12,29 +12,37 @@ namespace Meaplus.Controllers
     [ApiController]
     public class MeaplusController : ControllerBase
     {
-        const string API = "https://test-meaplus.sefos.se/server/rest/api/secure";
-        
+        private readonly IConfiguration _configuration;
+        private readonly IHttpClientFactory _httpClientFactory;
+
+        public MeaplusController(IConfiguration configuration, IHttpClientFactory httpClientFactory) {
+            _configuration = configuration;
+            _httpClientFactory = httpClientFactory;
+        }
+
         [HttpPost]
         public async void Post([FromBody] Message message)
         {
-            
+            string accessToken = _configuration["Sefos:BearerToken"];
+
             var sefosParticipants = new List<SefosParticipant>();
-            sefosParticipants.Add(new SefosParticipant { Email = "funktion2@fatg.se" });
+            sefosParticipants.Add(new SefosParticipant { Email = _configuration["Sefos:Email"] });
+            
             var externalParticipants = new List<ExternalParticipant>();
             externalParticipants.Add(new ExternalParticipant { Email = message.External_participants?.First().Email, Language = null, AuthenticationIdentifier = null, AuthenticationMethod = null, Configured = true });
 
-            message.functionbox_uuid = "u95yt3zx933p:09pf5h9o";
+            message.functionbox_uuid = _configuration["Sefos:Functionbox_uuid"];
             message.sefos_participants = sefosParticipants;
             message.settings = new Settings() { loa_level = 0, require_response = 0 };
             message.External_participants = externalParticipants;
 
-            var json = JsonConvert.SerializeObject(message);
-            var data = new StringContent(json, Encoding.UTF8, "application/json");
+            var httpClient = _httpClientFactory.CreateClient();
+            httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
-            using var client = new HttpClient();
-            var content = await client.PostAsync(API, data);
+            var jsonContent = new StringContent(JsonConvert.SerializeObject(message), Encoding.UTF8, "application/json");
+            var response = await httpClient.PostAsync(_configuration["Sefos:API"], jsonContent);
 
-            Console.WriteLine(content);
+            Console.WriteLine(response);
 
         }
 
